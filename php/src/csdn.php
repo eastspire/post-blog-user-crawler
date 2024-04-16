@@ -83,7 +83,7 @@ class CSDN
                 $element = $dom->getElementById('content_views');
                 // 输出元素内容
                 $content = $dom->saveXML($element);
-                $html = '<!DOCTYPE html><head><meta charset="UTF-8"><title>' . $title . '</title></head><body>' . '<h1>' . $title . '</h1>' . $content . '<div></div><br><blockquote>文章来源：<a href="https://www.zhihu.com/" target="_blank"></a>' . $title . '</blockquote></body></html>';
+                $html = '<!DOCTYPE html><head><meta charset="UTF-8"><title>' . $title . '</title></head><body>' . '<h1>' . $title . '</h1>' . $content . '<div></div><br><blockquote>文章来源：<a href="https://www.zhihu.com/" target="_blank">' . $title . '</a></blockquote></body></html>';
                 Base::htmlImageToBase64($process_loc, $html);
                 if (!$html) {
                     continue;
