@@ -103,7 +103,7 @@ class JianShu
                 }
                 $content = str_replace('data-original-src="', 'src="https:', $content);
                 $content = str_replace('padding-bottom:', '', $content);
-                $html = '<!DOCTYPE html><head><meta charset="UTF-8"><title>' . $title . '</title></head><body>' . $content . '<div></div><br><blockquote>文章来源：<a href="https://www.zhihu.com/" target="_blank">' . $title . '</a></blockquote></body></html>';
+                $html = '<!DOCTYPE html><head><meta charset="UTF-8"><title>' . $title . '</title></head><body>' . $content . '<div></div><blockquote><p>文章来源：<a href="https://www.jianshu.com/" target="_blank">' . $title . '</a></p></blockquote></body></html>';
 
                 Base::htmlImageToBase64($process_loc, $html);
                 if (!$html) {
