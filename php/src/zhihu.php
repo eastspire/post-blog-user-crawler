@@ -104,7 +104,7 @@ class ZhiHu
                 $ans_user_id = $ans_user_db->id;
 
                 $question = $tem->question->title;
-                $ans = '<!DOCTYPE html><head><meta charset="UTF-8"><title>' . $question . '</title></head><body>' . $tem->content . '</body></html>';
+                $ans = '<!DOCTYPE html><head><meta charset="UTF-8"><title>' . $question . '</title></head><body>' . $tem->content . '<div></div><br><blockquote>文章来源：<a href="https://www.zhihu.com/" target="_blank"></a>' . $question . '</blockquote></body></html>';
 
                 if (strlen($tem->content) <= 100) {
                     Console::log($process_loc, '回答过短，已跳过【' . date('Y-m-d H:i:s', time()) . '】', null, 'yellow');
