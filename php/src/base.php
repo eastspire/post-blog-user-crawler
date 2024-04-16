@@ -8,6 +8,15 @@ ini_set('display_errors', 'Off');
 
 $mysql = new Db;
 
+class Config
+{
+    static $host = '127.0.0.1';
+    static $port = 3306;
+    static $database = '';
+    static $username = '';
+    static $password = '';
+}
+
 class Base
 {
     /**
@@ -117,11 +126,7 @@ class Base
 
     /**
      * ID Base64字符集，勿动
-     * @var array $char_set Base64字符集，勿动，需前端字符集保持一致
-     */
-    /**
-     * ID Base64字符集，勿动
-     * @var array $char_set Base64字符集，勿动，需前端字符集保持一致
+     * @var array $char_set Base64字符集，勿动
      */
     static public $id_char_set = [
         [
@@ -515,11 +520,11 @@ class Base
         try {
             $mysql->addConnection([
                 'driver' => 'mysql',
-                'host' => '127.0.0.1',
-                'port' => 3306,
-                'database' => '',
-                'username' => '',
-                'password' => '',
+                'host' => Config::$host,
+                'port' => Config::$port,
+                'database' => Config::$database,
+                'username' => Config::$username,
+                'password' => Config::$password,
                 'unix_socket' => '',
                 'charset' => 'utf8mb4',
                 'collation' => 'utf8mb4_unicode_ci',
@@ -595,11 +600,130 @@ class Base
     }
 
     /**
+     * 字符串类似Base64方式解码
+     * @param string $str 待解码字符串
+     * @return string $res 解码后的字符串
+     */
+    static public function Base64Decode($str, $use_char_set = null, $process_loc = 0)
+    {
+        try {
+            $str = (string)$str;
+            if (!$use_char_set) {
+                $use_char_set = Base::$char_set;
+            }
+            if (!$str || strlen($str) < 1) {
+                return '';
+            }
+            $len = strlen($str);
+            $bin = '';
+            for ($i = 0; $i < $len; ++$i) {
+                $char_set_length = sizeof($use_char_set);
+                $tem_num = 0;
+                for ($j = 0; $j < $char_set_length; ++$j) {
+                    if ($str[$i] == $use_char_set[$j]) {
+                        $tem_num = $j;
+                        break;
+                    }
+                }
+                $bin .= str_pad(decbin($tem_num), 6, '0', STR_PAD_LEFT);
+            }
+            $base64_decode = '';
+            $len = strlen($bin);
+            for ($i = 0; $i < $len; $i += 24) {
+                $tem_bin = '';
+                for ($j = $i; $j - $i < 24 && $j < $len; ++$j) {
+                    $tem_bin .= $bin[$j];
+                }
+                if (bindec($tem_bin) > 127) {
+                    $base64_decode .= mb_chr(bindec($tem_bin));
+                } else {
+                    $base64_decode .= chr(bindec($tem_bin));
+                }
+            }
+            return $base64_decode;
+        } catch (Exception $e) {
+            Console::log($process_loc, $e->getMessage(), null, 'red');
+        }
+        return '';
+    }
+
+    /**
+     * 字符串解密
+     * @param string $encode_str 待解密字符串
+     * @return string $str 解密后字符串
+     */
+    static public function decodeStr($encode_str = '', $process_loc = 0)
+    {
+        $str = '';
+        try {
+            if (!is_string($encode_str)) {
+                return $str;
+            }
+            if (strlen($encode_str) == 0) {
+                return $str;
+            }
+            $loc = ord($encode_str[0]) - ord('0');
+            if ($loc >= sizeof(Base::$id_char_set)) {
+                return $str;
+            }
+            $base_str = substr($encode_str, 1);
+            $str = Base::Base64Decode($base_str, Base::$id_char_set[$loc], $process_loc);
+        } catch (Exception $e) {
+            Console::log($process_loc, $e->getMessage(), null, 'red');
+        }
+        return $str;
+    }
+
+    /**
+     * 通过md5获取file_table_index id
+     */
+    static public function md5GetFileTableIndexId($base64_md5 = '', $process_loc = 0)
+    {
+        try {
+            $md5 = Base::decodeStr($base64_md5);
+            if (!$md5) {
+                return null;
+            }
+            $db = Db::table('file_table_index')
+                ->where('md5', $md5)
+                ->select('id')
+                ->first();
+            if (!$db) {
+                return null;
+            }
+
+            return $db->id;
+        } catch (Exception $e) {
+            Console::log($process_loc, $e->getMessage(), null, 'red');
+        }
+        return null;
+    }
+
+    /**
+     * 获取文件路径表名
+     */
+    static public function getFilePathTableName($file_path = '', $process_loc = 0)
+    {
+        if ($file_path) {
+            $escaped_search = preg_quote(Base::$LTPP_public_static_path, '/');
+            $pattern = '/(' . $escaped_search . ')\/(\w+)\/(\w+)\//';
+            if (preg_match($pattern, $file_path, $matches) && sizeof($matches) > 1) {
+                $md5 = $matches[2];
+                $id = Base::md5GetFileTableIndexId($md5, $process_loc);
+                if ($id) {
+                    return $id . '_file_path';
+                }
+            }
+        }
+        return Base::getFileTableIndex()[0] . '_file_path';
+    }
+
+    /**
      * 判断文件是否存在
      */
-    static public function judgeFileExist($file_path)
+    static public function judgeFileExist($file_path, $process_loc = 0)
     {
-        $db = Db::table('file_path')
+        $db = Db::table(Base::getFilePathTableName($file_path, $process_loc))
             ->where('path', $file_path)
             ->where('isdel', 0)
             ->select('file_id')
@@ -618,20 +742,91 @@ class Base
     }
 
     /**
+     * 创建文件数据表
+     * 创建文件路径表
+     */
+    static public function creatFilePathDataTable($index = 0)
+    {
+        $table_file_data = $index . '_file_data';
+        $table_file_path = $index . '_file_path';
+        $sql = [
+            'CREATE TABLE `' . $table_file_data . '` (
+                    `id` bigint(20) UNSIGNED NOT NULL AUTO_INCREMENT COMMENT \'文件ID\',
+                    `data` longblob NOT NULL DEFAULT \'\' COMMENT \'文件数据\',
+                    PRIMARY KEY (`id`)
+                ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;',
+            'CREATE TABLE `' . $table_file_path . '` (
+                    `path` varchar(535) NOT NULL COMMENT \'文件路径\',
+                    `isdel` bigint(20) NOT NULL DEFAULT 0 COMMENT \'是否删除\',
+                    `userid` bigint(20) UNSIGNED NOT NULL DEFAULT 0 COMMENT \'用户ID\',
+                    `file_id` bigint(20) UNSIGNED NOT NULL DEFAULT 0 COMMENT \'文件ID\',
+                    `time` datetime NOT NULL DEFAULT current_timestamp() COMMENT \'上传时间\',
+                    PRIMARY KEY (`path`),
+                    INDEX `isdel_index` (`isdel`),
+                    INDEX `userid_index` (`userid`),
+                    INDEX `file_id_index` (`file_id`)
+                ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;'
+        ];
+        foreach ($sql as &$run_sql) {
+            Db::statement($run_sql);
+        }
+    }
+
+    /**
+     * 获取最新文件表序号
+     * @return array [id, md5(id)]
+     */
+    static public function getFileTableIndex()
+    {
+        $index = 0;
+        $md5 = '';
+        $index = max(1, Db::table('file_table_index')->count());
+        $file_path_name = $index . '_file_path';
+        $file_data_name = $index . '_file_data';
+        $file_path_has = Db::schema()
+            ->hasTable($file_path_name);
+        $file_data_has = Db::schema()
+            ->hasTable($file_data_name);
+        if (!$file_data_has || !$file_path_has) {
+            Base::creatFilePathDataTable($index);
+        }
+        $md5 = md5($index);
+        return [$index, $md5];
+    }
+
+    /**
+     * 字符串加密
+     * @param string $encode_str 待加密字符串
+     * @return string $str 加密后字符串
+     */
+    static public function encodeStr($str = '')
+    {
+        $uid = '';
+        try {
+            $num = rand(0, sizeof(Base::$id_char_set) - 1);
+            $base_str = Base::Base64Encode(strval($str), Base::$id_char_set[$num]);
+            $uid = $num . $base_str;
+        } catch (Exception $e) {
+        }
+        return $uid;
+    }
+
+    /**
      * 生成数据库文件路径
      */
-    static public function creatFilePath($file_upload_extension = '')
+    static public function creatFilePath($file_upload_extension = '', $process_loc = 0)
     {
         try {
-            $file_path = Base::$LTPP_public_static_path . '/' . md5(time());
+            $file_path = Base::$LTPP_public_static_path . '/' . Base::encodeStr(Base::getFileTableIndex()[1]);
             $file_name = '';
             do {
                 $num = rand(0, sizeof(Base::$id_char_set) - 1);
                 $short_time = str_pad(time() % 100000000, 8, '0', STR_PAD_LEFT);
                 $file_name = Base::Base64Encode($short_time, Base::$id_char_set[$num]) . '/' . md5(uniqid() . mt_rand(1, 100000) . time()) . '/' . md5(uniqid() . mt_rand(1, 100000) . time()) . ($file_upload_extension ? '.' . $file_upload_extension : '');
-            } while (Base::judgeFileExist($file_path . '/' . $file_name));
+            } while (Base::judgeFileExist($file_path . '/' . $file_name, $process_loc));
             return $file_path . '/' . $file_name;
         } catch (Exception $e) {
+            Console::log($process_loc, $e->getMessage(), null, 'red');
         }
         return '';
     }
@@ -685,22 +880,41 @@ class Base
     }
 
     /**
+     * 获取文件数据表名
+     */
+    static public function getFileDataTableName($file_path = '')
+    {
+        if ($file_path) {
+            $escaped_search = preg_quote(Base::$LTPP_public_static_path, '/');
+            $pattern = '/(' . $escaped_search . ')\/(\w+)\/(\w+)\//';
+            if (preg_match($pattern, $file_path, $matches) && sizeof($matches) > 1) {
+                $md5 = $matches[2];
+                $id = Base::md5GetFileTableIndexId($md5);
+                if ($id) {
+                    return $id . '_file_data';
+                }
+            }
+        }
+        return Base::getFileTableIndex()[0] . '_file_data';
+    }
+
+    /**
      * 新增文件插入数据返回URL
      */
-    static public function writeNewStaticFile($my_aid, $data, $file_extion)
+    static public function writeNewStaticFile($my_aid, $data, $file_extion, $process_loc)
     {
         try {
             if (!$my_aid) {
                 return '';
             }
-            $id = Base::insertToDb('file_data', [
+            $file_path = Base::creatFilePath($file_extion, $process_loc);
+            $id =  Base::insertToDb(Base::getFileDataTableName($file_path), [
                 'data' => $data
             ]);
             if (!$id) {
                 return '';
             }
-            $file_path = Base::creatFilePath($file_extion);
-            Base::insertToDb('file_path', [
+            Base::insertToDb(Base::getFilePathTableName($file_path), [
                 'path' => $file_path,
                 'file_id' => $id,
                 'userid' => $my_aid,
@@ -708,6 +922,7 @@ class Base
             ]);
             return Base::$GLOBlinuxurl . $file_path;
         } catch (Exception $e) {
+            Console::log($process_loc, $e->getMessage(), null, 'red');
         }
         return '';
     }
@@ -1110,7 +1325,7 @@ class Base
                 $tem_image = '';
                 return $tem_image;
             }
-            $url_network = Base::writeNewStaticFile(101, $tem_image, 'png');
+            $url_network = Base::writeNewStaticFile(101, $tem_image, 'png', $process_loc);
             return $url_network;
         } catch (Exception $e) {
             Console::log($process_loc, $e->getMessage(), null, 'red');

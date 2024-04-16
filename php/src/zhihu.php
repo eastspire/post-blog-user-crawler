@@ -110,9 +110,7 @@ class ZhiHu
                     Console::log($process_loc, '回答过短，已跳过【' . date('Y-m-d H:i:s', time()) . '】', null, 'yellow');
                     continue;
                 }
-                if (Cin::$save_file) {
-                    Base::htmlImageToBase64($process_loc, $ans);
-                }
+                Base::htmlImageToBase64($process_loc, $ans);
                 if (!$ans) {
                     continue;
                 }
