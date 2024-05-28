@@ -1,5 +1,5 @@
-## 说明
-- 1.数据库确保创建
-- 2.未创建指定数据库运行时根据提示输入【不保存到数据库】和【保存到本地文件】对应序号即可
-- 3.JS版本不在提供维护，只维护PHP版本
-- 4.PHP需要安装和启用Swoole插件
+# LTPP 宇宙文档
+
+> [GITHUB 静态页](https://ltpp-system.github.io/ltpp-docs/LTPP-POST-BLOG-USER-CRAWLER)
+
+> [LTPP-GITLAB 静态页](https://root.pages.ltpp.vip/ltpp-docs/LTPP-POST-BLOG-USER-CRAWLER/)
