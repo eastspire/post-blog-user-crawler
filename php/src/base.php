@@ -1366,6 +1366,7 @@ class Base
                 $src = $image->getAttribute('src');
                 $img_url = Base::getImgNewUrl($process_loc, $src);
                 $image->setAttribute('src', $img_url);
+                $image->setAttribute('alt', '');
             }
             $html = @html_entity_decode($dom->saveHTML(), ENT_QUOTES, 'UTF-8');
         } catch (Exception $e) {
