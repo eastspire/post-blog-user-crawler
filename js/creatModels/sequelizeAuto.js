@@ -1,7 +1,7 @@
 /*
  * @Author: 18855190718 1491579574@qq.com
  * @Date: 2023-06-13 21:40:51
- * @LastEditors: wmzn-ltpp 1491579574@qq.com
+ * @LastEditors: ltpp-universe 1491579574@qq.com
  * @LastEditTime: 2023-11-12 19:04:57
  * @FilePath: \post-blog-user-crawler\js\creatModels\sequelizeAuto.js
  * @Description: Email:1491579574@qq.com
