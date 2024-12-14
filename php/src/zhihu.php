@@ -96,28 +96,24 @@ class ZhiHu
                     Console::log($process_loc, '出错【' . date('Y-m-d H:i:s', time()) . '】', null, 'red');
                     continue;
                 }
-
                 $post_user_db = Base::addUser($process_loc, $tem->question->author->name, $tem->question->author->avatar_url);
                 $ans_user_db = Base::addUser($process_loc, $tem->author->name, $tem->author->avatar_url);
-
                 $post_user_id = $post_user_db->id;
                 $ans_user_id = $ans_user_db->id;
-
                 $question = $tem->question->title;
                 $ans = '<!DOCTYPE html><head><meta charset="UTF-8"><title>' . $question . '</title></head><body>' . $tem->content . '<div></div><blockquote><p>文章来源：<a href="https://www.zhihu.com/" target="_blank">' . $question . '</a></p></blockquote></body></html>';
-
                 if (strlen($tem->content) <= 100) {
                     Console::log($process_loc, '回答过短，已跳过【' . date('Y-m-d H:i:s', time()) . '】', null, 'yellow');
-                    continue;
-                }
-                Base::htmlImageToBase64($process_loc, $ans);
-                if (!$ans) {
                     continue;
                 }
                 $ishas = Base::judgeIsExists('question', 'name', $question);
                 if ($ishas) {
                     Console::log($process_loc, '问题在数据库中已存在，已跳过【' . $question . '】', null, 'yellow');
                 } else {
+                    Base::htmlImageToBase64($process_loc, $ans);
+                    if (!$ans) {
+                        continue;
+                    }
                     $question_id = Base::addQuestion($process_loc, $question, $post_user_id);
                     if ($question_id) {
                         Base::addAnswer($process_loc, $question_id, $ans_user_id, $ans);

@@ -104,14 +104,7 @@ class JianShu
                 $content = str_replace('data-original-src="', 'src="https:', $content);
                 $content = str_replace('padding-bottom:', '', $content);
                 $html = '<!DOCTYPE html><head><meta charset="UTF-8"><title>' . $title . '</title></head><body>' . $content . '<div></div><blockquote><p>文章来源：<a href="https://www.jianshu.com/" target="_blank">' . $title . '</a></p></blockquote></body></html>';
-
-                Base::htmlImageToBase64($process_loc, $html);
-                if (!$html) {
-                    continue;
-                }
-
                 $user_json = Base::sendRequest($process_loc, JianShu::$user_url . $one_json->user->slug);
-
                 if (!$user_json) {
                     Console::error($process_loc);
                     continue;
@@ -125,6 +118,10 @@ class JianShu
                 if ($ishas) {
                     Console::log($process_loc, '文章在数据库中已存在，已跳过【' . $title . '】', null, 'yellow');
                 } else {
+                    Base::htmlImageToBase64($process_loc, $html);
+                    if (!$html) {
+                        continue;
+                    }
                     $article_id = Base::addArticle($process_loc, $title, $html, $user_db->id);
                     if ($article_id) {
                         for ($i = 0; $i < Base::$comment_num; ++$i) {
