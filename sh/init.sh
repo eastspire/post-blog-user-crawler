@@ -1,4 +1,5 @@
 #!/bin/bash
-git remote add jihulab git@jihulab.com:ltpp-universe/post-blog-user-crawler.git;
-git remote add github git@github.com:ltpp-universe/post-blog-user-crawler.git;
+git init;
+git config core.ignorecase false;
+git remote add gitee git@gitee.com:ltpp-universe/post-blog-user-crawler.git;
 git remote add origin git@github.com:ltpp-universe/post-blog-user-crawler.git;
